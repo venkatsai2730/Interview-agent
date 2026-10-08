@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vero &mdash; AI Voice Agent for Structured Conversations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --blue: #1C55BB; --blue-dk: #1441a0; --blue-lt: #2563EB; --blue-pale: #EFF4FF;
+  --border: #e2e8f0; --text: #1a2332; --muted: #64748b; --faint: #94a3b8;
+  --green: #10b981; --green-bg: #f0fdf4; --green-bd: #bbf7d0;
+  --purple: #7c3aed; --purple-bg: #f5f3ff; --purple-bd: #ddd6fe;
+  --orange: #f59e0b; --orange-bg: #fffbeb; --orange-bd: #fde68a;
+  --shadow: 0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+}
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body { font-family: 'DM Sans', sans-serif; color: var(--text); background: #fff; font-size: 15px; line-height: 1.6; }
+h1,h2,h3,h4 { font-family: 'Playfair Display', serif; line-height: 1.15; }
+a { text-decoration: none; color: inherit; }
+button { font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; }
+@keyframes pulse { 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:.4; transform:scale(.75); } }
+@keyframes floatUp { from{ opacity:0; transform:translateY(18px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes waveform { 0%,100%{ height:6px; } 50%{ height:22px; } }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+section { padding: 96px 0; }
+.eyebrow { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; color: var(--blue); margin-bottom: 10px; }
+.section-title { font-size: clamp(28px,3.8vw,42px); font-weight: 700; color: var(--text); margin-bottom: 14px; }
+.section-sub { font-size: 16px; color: var(--muted); max-width: 620px; margin: 0 auto; line-height: 1.75; }
+.tc { text-align: center; }
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid transparent; }
+.badge-blue { background: var(--blue-pale); color: var(--blue); border-color: #bfdbfe; }
+.badge-green { background: var(--green-bg); color: #065f46; border-color: var(--green-bd); }
+.badge-purp { background: var(--purple-bg); color: var(--purple); border-color: var(--purple-bd); }
+.badge-orange { background: var(--orange-bg); color: #92400e; border-color: var(--orange-bd); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; transition: all .2s; white-space: nowrap; cursor: pointer; }
+.btn-primary { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(28,85,187,.28); }
+.btn-primary:hover { background: var(--blue-dk); box-shadow: 0 6px 20px rgba(28,85,187,.38); transform: translateY(-1px); }
+.btn-outline { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
+.btn-outline:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
+.btn-lg { padding: 15px 30px; font-size: 15px; border-radius: 12px; }
+.btn-sm { padding: 7px 14px; font-size: 12.5px; border-radius: 8px; }
+
+/* NAV */
+#nav { position: fixed; top: 0; left: 0; right: 0; z-index: 999; height: 64px; background: rgba(255,255,255,.96); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(226,232,240,.8); display: flex; align-items: center; padding: 0 40px; justify-content: space-between; transition: box-shadow .25s; }
+#nav.scrolled { box-shadow: 0 2px 24px rgba(0,0,0,.09); }
+.nav-brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
+.nav-mark { width: 40px; height: 40px; background: linear-gradient(135deg,var(--blue),var(--blue-lt)); border-radius: 11px; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display',serif; font-weight: 700; font-size: 19px; color: #fff; flex-shrink: 0; }
+.nav-name { font-family: 'Playfair Display',serif; font-size: 20px; font-weight: 700; color: var(--blue); line-height: 1; }
+.nav-sub { font-size: 10px; color: var(--muted); letter-spacing: .7px; text-transform: uppercase; margin-top: 2px; }
+.nav-links { display: flex; gap: 2px; }
+.nav-link { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .15s; user-select: none; }
+.nav-link:hover, .nav-link.active { background: var(--blue-pale); color: var(--blue); font-weight: 600; }
+.nav-right { display: flex; gap: 9px; align-items: center; flex-shrink: 0; }
+
+/* HERO */
+#hero { padding-top: 64px; background: linear-gradient(160deg, #eef3fc 0%, #f0f4ff 35%, #f8f5ff 65%, #ffffff 100%); position: relative; }
+.hero-bg-grid { position: absolute; inset: 0; pointer-events: none; z-index: 0; background-image: linear-gradient(rgba(28,85,187,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(28,85,187,.045) 1px, transparent 1px); background-size: 52px 52px; }
+.hero-orb-a { position: absolute; top: -80px; right: 5%; width: 620px; height: 620px; border-radius: 50%; pointer-events: none; z-index: 0; background: radial-gradient(ellipse, rgba(28,85,187,.08) 0%, transparent 70%); }
+.hero-orb-b { position: absolute; bottom: 60px; left: -60px; width: 420px; height: 420px; border-radius: 50%; pointer-events: none; z-index: 0; background: radial-gradient(ellipse, rgba(124,58,237,.055) 0%, transparent 70%); }
+.hero-inner { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 72px 40px 80px; display: flex; align-items: center; gap: 48px; }
+.hero-left { flex: 1; min-width: 0; max-width: 580px; }
+.hero-right { flex: 0 0 auto; width: 460px; display: flex; align-items: center; justify-content: center; }
+.live-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 13px; border: 1px solid rgba(28,85,187,.2); background: rgba(28,85,187,.045); border-radius: 24px; font-size: 12px; color: var(--muted); margin-bottom: 24px; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; flex-shrink: 0; }
+.hero-h1 { font-size: clamp(38px,5vw,60px); font-weight: 800; letter-spacing: -.4px; color: var(--text); margin-bottom: 16px; line-height: 1.06; }
+.hero-h1 .accent { color: var(--blue); }
+.hero-tagline { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 12px; }
+.hero-lead { font-size: 16px; color: var(--muted); line-height: 1.78; margin-bottom: 32px; max-width: 500px; }
+.hero-stats { display: flex; margin-bottom: 36px; }
+.h-stat { padding-right: 24px; }
+.h-stat + .h-stat { padding-left: 24px; border-left: 1px solid var(--border); }
+.h-stat-n { font-family: 'Playfair Display',serif; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+.h-stat-l { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* VOICE ANIMATION CARD */
+.voice-card { background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 28px; box-shadow: var(--shadow); width: 100%; animation: floatUp .6s ease both; }
+.voice-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.voice-avatar { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg,var(--blue),var(--blue-lt)); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display',serif; font-weight: 700; font-size: 18px; color: #fff; flex-shrink: 0; }
+.voice-name { font-weight: 700; font-size: 15px; }
+.voice-role { font-size: 12px; color: var(--muted); }
+.voice-status { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--green); font-weight: 600; }
+.wave-bars { display: flex; align-items: center; gap: 3px; height: 28px; margin-bottom: 20px; }
+.wave-bar { width: 4px; border-radius: 2px; background: var(--blue); animation: waveform 0.8s ease-in-out infinite; }
+.wave-bar:nth-child(1){ animation-delay:0s; height:8px; }
+.wave-bar:nth-child(2){ animation-delay:.1s; height:16px; }
+.wave-bar:nth-child(3){ animation-delay:.2s; height:22px; }
+.wave-bar:nth-child(4){ animation-delay:.3s; height:14px; }
+.wave-bar:nth-child(5){ animation-delay:.4s; height:20px; }
+.wave-bar:nth-child(6){ animation-delay:.15s; height:10px; }
+.wave-bar:nth-child(7){ animation-delay:.25s; height:18px; }
+.wave-bar:nth-child(8){ animation-delay:.35s; height:12px; }
+.wave-bar:nth-child(9){ animation-delay:.05s; height:24px; }
+.wave-bar:nth-child(10){ animation-delay:.45s; height:8px; }
+.wave-bar:nth-child(11){ animation-delay:.2s; height:16px; }
+.wave-bar:nth-child(12){ animation-delay:.3s; height:20px; }
+.wave-bar.muted { background: var(--border); animation: none; height: 4px; }
+.voice-transcript { font-size: 13px; color: var(--text); line-height: 1.65; background: var(--blue-pale); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; border-left: 3px solid var(--blue); }
+.voice-transcript span { color: var(--blue); font-weight: 600; }
+.voice-scoring { display: flex; gap: 8px; flex-wrap: wrap; }
+.score-pill { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; background: var(--green-bg); color: #065f46; border: 1px solid var(--green-bd); }
+.score-pill.blue { background: var(--blue-pale); color: var(--blue); border-color: #bfdbfe; }
+.score-pill.orange { background: var(--orange-bg); color: #92400e; border-color: var(--orange-bd); }
+.skill-pack-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; }
+.skill-pack-label { color: var(--muted); }
+.skill-pack-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 6px; background: var(--purple-bg); color: var(--purple); font-size: 11px; font-weight: 600; border: 1px solid var(--purple-bd); }
+
+/* TRUST */
+#trust { padding: 18px 0; background: #fff; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.trust-row { display: flex; align-items: center; justify-content: center; gap: 36px; flex-wrap: wrap; }
+.trust-item { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.trust-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* HOW IT WORKS */
+#how { background: linear-gradient(180deg, #fff9ef 0%, #fffcf5 60%, #fff 100%); }
+.steps-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; max-width: 940px; margin: 0 auto; }
+.step-card-stage { position: relative; height: 300px; }
+.step-card { position: absolute; inset: 0; border-radius: 20px; background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 28px; transition: all .4s cubic-bezier(.22,1,.36,1); cursor: pointer; }
+.step-card.active { z-index: 10; opacity: 1; transform: none; }
+.step-card.behind { opacity: .5; }
+.step-icon { width: 62px; height: 62px; border-radius: 14px; background: var(--blue-pale); display: flex; align-items: center; justify-content: center; font-size: 26px; margin-bottom: 16px; }
+.step-num { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.step-title { font-family: 'Playfair Display',serif; font-size: 17px; font-weight: 700; text-align: center; color: var(--text); }
+.step-text { display: flex; flex-direction: column; min-height: 260px; }
+.step-h3 { font-family: 'Playfair Display',serif; font-size: 23px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+.step-desc { font-size: 15px; color: var(--muted); line-height: 1.8; flex: 1; }
+.s-nav { display: flex; align-items: center; gap: 10px; margin-top: 24px; }
+.s-btn { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--muted); transition: all .2s; }
+.s-btn:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+.s-dots { display: flex; gap: 6px; align-items: center; }
+.s-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); cursor: pointer; transition: all .2s; }
+.s-dot.on { background: var(--blue); width: 18px; border-radius: 3px; }
+
+/* SKILL PACKS */
+#skillpacks { background: linear-gradient(180deg, #efffef 0%, #f3fdf8 40%, #fff 100%); }
+.skills-grid { display: grid; grid-template-columns: repeat(4,1fr); background: #fff; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+.skill-cell { padding: 32px 26px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); position: relative; transition: background .2s; cursor: pointer; }
+.skill-cell:nth-child(4n) { border-right: none; }
+.skill-cell:nth-last-child(-n+4) { border-bottom: none; }
+.skill-cell::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .25s; background: linear-gradient(135deg, rgba(28,85,187,.05), transparent); pointer-events: none; }
+.skill-cell:hover::before { opacity: 1; }
+.skill-bar { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 0; background: var(--blue); border-radius: 0 2px 2px 0; transition: height .25s; }
+.skill-cell:hover .skill-bar { height: 44px; }
+.skill-icon { font-size: 20px; margin-bottom: 12px; display: block; transition: transform .2s; }
+.skill-cell:hover .skill-icon { transform: translateX(4px); }
+.skill-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; transition: color .2s, transform .2s; }
+.skill-cell:hover .skill-name { color: var(--blue); transform: translateX(4px); }
+.skill-output { font-size: 11px; color: var(--muted); margin-bottom: 7px; line-height: 1.5; }
+.skill-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: var(--blue-pale); color: var(--blue); border: 1px solid #bfdbfe; }
+
+/* CHANNELS */
+#channels { background: linear-gradient(180deg, #f9f5ff 0%, #faf7ff 60%, #fff 100%); }
+.channels-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 920px; margin: 0 auto; }
+.channel-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px; display: flex; gap: 18px; transition: all .22s; }
+.channel-card:hover { box-shadow: var(--shadow); border-color: rgba(28,85,187,.22); transform: translateY(-2px); }
+.ch-icon { width: 52px; height: 52px; border-radius: 14px; background: var(--blue-pale); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.ch-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.ch-desc { font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 10px; }
+.ch-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.ch-tag { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: var(--blue-pale); color: var(--blue); border: 1px solid #bfdbfe; }
+
+/* TECH STACK */
+#tech { padding: 52px 0; background: #fff; border-top: 1px solid var(--border); }
+.tech-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); margin-bottom: 22px; text-align: center; }
+.tech-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.tech-tag { padding: 7px 16px; border: 1px solid var(--border); border-radius: 24px; font-size: 13px; font-weight: 500; color: var(--muted); background: #fff; transition: all .2s; }
+.tech-tag:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
+
+/* CTA */
+#cta { background: linear-gradient(135deg, #e8f0fe 0%, #edf3fe 60%, #f0f5ff 100%); }
+.cta-box { border: 1px solid rgba(28,85,187,.15); border-radius: 24px; padding: 80px 48px; text-align: center; max-width: 760px; margin: 0 auto; background: rgba(255,255,255,.5); }
+.cta-title { font-size: clamp(26px,3.6vw,40px); font-weight: 700; margin-bottom: 14px; }
+.cta-sub { font-size: 16px; color: var(--muted); margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+.cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* FOOTER */
+footer { background: #f4f7fb; border-top: 1px solid var(--border); padding: 60px 0 0; }
+.footer-cols { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+.footer-brand { font-family: 'Playfair Display',serif; font-size: 18px; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+.footer-tagline { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 230px; margin-bottom: 14px; }
+.footer-head { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+.footer-link { display: block; font-size: 13px; color: var(--muted); padding: 3px 0; transition: color .15s; cursor: pointer; }
+.footer-link:hover { color: var(--blue); }
+.footer-bar { border-top: 1px solid var(--border); padding: 18px 0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+/* MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(10,20,40,.5); backdrop-filter: blur(8px); z-index: 9999; display: none; align-items: center; justify-content: center; }
+.overlay.open { display: flex; }
+.modal { background: #fff; border-radius: 22px; padding: 44px; width: 100%; max-width: 410px; box-shadow: 0 32px 80px rgba(0,0,0,.22); position: relative; }
+.modal-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: none; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; cursor: pointer; }
+.modal-close:hover { background: #f4f7fb; }
+.modal-mark { width: 40px; height: 40px; background: linear-gradient(135deg,var(--blue),var(--blue-lt)); border-radius: 11px; display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display',serif; font-weight: 700; font-size: 18px; color: #fff; margin-bottom: 16px; }
+.modal-title { font-family: 'Playfair Display',serif; font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+.modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.form-field { margin-bottom: 14px; }
+.form-field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+.form-field input, .form-field select { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'DM Sans',sans-serif; color: var(--text); outline: none; background: #fff; }
+.form-field input:focus, .form-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(28,85,187,.1); }
+.modal-note { text-align: center; font-size: 11px; color: var(--muted); margin-top: 12px; }
+
+@media (max-width: 960px) {
+  .hero-inner { flex-direction: column; padding: 60px 40px; }
+  .hero-right { display: none; }
+  .hero-left { max-width: 100%; }
+  .steps-layout { grid-template-columns: 1fr; gap: 36px; }
+  .skills-grid { grid-template-columns: repeat(2,1fr); }
+  .skill-cell:nth-child(4n) { border-right: 1px solid var(--border); }
+  .skill-cell:nth-child(2n) { border-right: none; }
+  .skill-cell:nth-last-child(-n+4) { border-bottom: 1px solid var(--border); }
+  .skill-cell:nth-last-child(-n+2) { border-bottom: none; }
+  .channels-grid { grid-template-columns: 1fr; }
+  .footer-cols { grid-template-columns: 1fr 1fr; gap: 32px; }
+}
+@media (max-width: 600px) {
+  .wrap { padding: 0 20px; }
+  #nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .hero-inner { padding: 48px 20px; }
+  .skills-grid { grid-template-columns: 1fr; }
+  .skill-cell { border-right: none !important; border-bottom: 1px solid var(--border) !important; }
+  .skill-cell:last-child { border-bottom: none !important; }
+  .footer-cols { grid-template-columns: 1fr; }
+  .cta-box { padding: 44px 20px; }
+}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="nav-brand">
+    <div class="nav-mark">V</div>
+    <div>
+      <div class="nav-name">Vero</div>
+      <div class="nav-sub">AI Voice Agent Platform</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <span class="nav-link active" data-target="hero">Home</span>
+    <span class="nav-link" data-target="how">How It Works</span>
+    <span class="nav-link" data-target="skillpacks">Skill Packs</span>
+    <span class="nav-link" data-target="channels">Channels</span>
+  </div>
+  <div class="nav-right">
+    <button class="btn btn-outline btn-sm" onclick="openModal()">Sign In</button>
+    <button class="btn btn-primary btn-sm" onclick="openModal()">Request Demo &rarr;</button>
+  </div>
+</nav>
+
+<section id="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-orb-a"></div>
+  <div class="hero-orb-b"></div>
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="live-pill">
+        <span class="live-dot"></span>
+        Active voice sessions now &middot; 3 concurrent interviews
+      </div>
+      <h1 class="hero-h1">
+        <span class="accent">Vero</span><br>
+        AI That Takes<br>a Seat &amp; Leads
+      </h1>
+      <p class="hero-tagline">Microsoft Teams &middot; Phone Channel &middot; Sarvam AI &middot; Skill Packs</p>
+      <p class="hero-lead">
+        An autonomous AI conversation agent that joins your Teams meetings or dials phone numbers, drives structured interviews, discovery calls, and coaching sessions &mdash; then delivers a scored report within 60 seconds of call end.
+      </p>
+      <div class="hero-stats">
+        <div class="h-stat">
+          <div class="h-stat-n">&lt;4s</div>
+          <div class="h-stat-l">Response Latency</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-n">7</div>
+          <div class="h-stat-l">Skill Pack Roles</div>
+        </div>
+        <div class="h-stat">
+          <div class="h-stat-n">23</div>
+          <div class="h-stat-l">Languages Supported</div>
+        </div>
+      </div>
+      <div class="hero-ctas">
+        <button class="btn btn-primary btn-lg" onclick="openModal()">Request Demo</button>
+        <button class="btn btn-outline btn-lg" onclick="navScrollTo('skillpacks')">Explore Skill Packs</button>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="voice-card">
+        <div class="voice-header">
+          <div class="voice-avatar">V</div>
+          <div>
+            <div class="voice-name">Vero &mdash; Alex</div>
+            <div class="voice-role">Technical Interviewer &middot; interviewer-v1</div>
+          </div>
+          <div class="voice-status">
+            <span class="live-dot"></span> Live
+          </div>
+        </div>
+        <div class="wave-bars" id="wavebars">
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+        <div class="voice-transcript">
+          <span>Alex (Vero):</span> "That's a great starting point. Can you walk me through how you handled schema migrations at scale in your last role?"
+        </div>
+        <div class="voice-scoring">
+          <div class="score-pill blue">🎯 Communication: 4/5</div>
+          <div class="score-pill">✅ System Design: 3/5</div>
+          <div class="score-pill orange">⏳ Depth: probing...</div>
+        </div>
+        <div class="skill-pack-row">
+          <span class="skill-pack-label">Active skill:</span>
+          <span class="skill-pack-badge">📋 interviewer-v1</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--muted);">Q3 of 8</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="trust">
+  <div class="wrap">
+    <div class="trust-row">
+      <div class="trust-item"><span class="trust-dot" style="background:#1C55BB"></span>Microsoft Teams Native</div>
+      <div class="trust-item"><span class="trust-dot" style="background:#7c3aed"></span>Sarvam AI &middot; 23 Languages</div>
+      <div class="trust-item"><span class="trust-dot" style="background:#10b981"></span>60s Report Delivery</div>
+      <div class="trust-item"><span class="trust-dot" style="background:#f59e0b"></span>Skill Pack Architecture</div>
+      <div class="trust-item"><span class="trust-dot" style="background:#ef4444"></span>Zero Human in Loop</div>
+      <div class="trust-item"><span class="trust-dot" style="background:#06b6d4"></span>LiveKit SIP &middot; Phone Channel</div>
+    </div>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="tc" style="margin-bottom:56px">
+      <span class="eyebrow">How It Works</span>
+      <h2 class="section-title">End-to-End in 8 Stages</h2>
+      <p class="section-sub">From loading a Skill Pack to a scored report in your inbox &mdash; fully autonomous, no human involvement during the call.</p>
+    </div>
+    <div class="steps-layout">
+      <div class="step-card-stage" id="step-stage"></div>
+      <div class="step-text">
+        <div>
+          <h3 class="step-h3" id="step-title"></h3>
+          <p class="step-desc" id="step-desc"></p>
+        </div>
+        <div class="s-nav">
+          <button class="s-btn" id="step-prev">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button class="s-btn" id="step-next">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <div class="s-dots" id="step-dots"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="skillpacks">
+  <div class="wrap">
+    <div class="tc" style="margin-bottom:48px">
+      <span class="eyebrow">Skill Packs</span>
+      <h2 class="section-title">One Agent, Every Role</h2>
+      <p class="section-sub">Swap the YAML, Vero becomes a different expert. No code changes required &mdash; persona, questions, rubric, and report template all driven by config.</p>
+    </div>
+    <div class="skills-grid" id="skills-grid"></div>
+  </div>
+</section>
+
+<section id="channels">
+  <div class="wrap">
+    <div class="tc" style="margin-bottom:48px">
+      <span class="eyebrow">Channels</span>
+      <h2 class="section-title">Teams or Phone &mdash; Your Call</h2>
+      <p class="section-sub">Dual-channel architecture supports both Microsoft Teams and PSTN phone numbers. Same Skill Pack, same output report.</p>
+    </div>
+    <div class="channels-grid" id="channels-grid"></div>
+  </div>
+</section>
+
+<div id="tech">
+  <div class="wrap">
+    <p class="tech-label">Powered by enterprise-grade open technology</p>
+    <div class="tech-row" id="tech-row"></div>
+  </div>
+</div>
+
+<section id="cta">
+  <div class="wrap">
+    <div class="cta-box">
+      <span class="eyebrow" style="display:block;margin-bottom:12px">Real conversations, intelligently driven</span>
+      <h2 class="cta-title">Ready to Deploy Vero?</h2>
+      <p class="cta-sub">Cut time-to-shortlist from 2 weeks to 2 days. Run 20 parallel interviews with zero recruiter time. Scale structured conversations across every vertical.</p>
+      <div class="cta-btns">
+        <button class="btn btn-primary btn-lg" onclick="openModal()">Request Demo</button>
+        <button class="btn btn-outline btn-lg" onclick="navScrollTo('skillpacks')">View Skill Packs</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-cols">
+      <div>
+        <div class="footer-brand">Vero</div>
+        <p class="footer-tagline">The AI agent that takes a seat in any conversation &mdash; interviewer, coach, consultant, or auditor.</p>
+        <span class="badge badge-blue">POC &middot; v0 &middot; March 2026</span>
+      </div>
+      <div>
+        <div class="footer-head">Platform</div>
+        <span class="footer-link">Skill Packs</span>
+        <span class="footer-link">Teams Channel</span>
+        <span class="footer-link">Phone Channel</span>
+        <span class="footer-link">Session History</span>
+        <span class="footer-link">Report Gallery</span>
+      </div>
+      <div>
+        <div class="footer-head">Use Cases</div>
+        <span class="footer-link">Technical Interviews</span>
+        <span class="footer-link">Sales Coaching</span>
+        <span class="footer-link">Discovery Calls</span>
+        <span class="footer-link">Compliance Audits</span>
+        <span class="footer-link">HR Onboarding</span>
+      </div>
+      <div>
+        <div class="footer-head">Technology</div>
+        <span class="footer-link">Sarvam AI</span>
+        <span class="footer-link">Recall.ai</span>
+        <span class="footer-link">LiveKit SIP</span>
+        <span class="footer-link">FastAPI Backend</span>
+        <span class="footer-link">Architecture Docs</span>
+      </div>
+    </div>
+    <div class="footer-bar">
+      <span>&copy; 2026 Vero &mdash; AI Voice Agent Platform. Built by Minfy Technologies.</span>
+      <span>Powered by Sarvam AI &middot; Recall.ai &middot; LiveKit</span>
+    </div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    <div class="modal-mark">V</div>
+    <div class="modal-title">Request a Demo</div>
+    <div class="modal-sub">See Vero run a live interview or discovery call on your Teams tenant.</div>
+    <div class="form-field"><label>Full Name</label><input type="text" placeholder="Your name"></div>
+    <div class="form-field"><label>Work Email</label><input type="email" placeholder="you@company.com"></div>
+    <div class="form-field"><label>Company</label><input type="text" placeholder="Company name"></div>
+    <div class="form-field"><label>Use Case</label>
+      <select>
+        <option>Technical Interviews</option>
+        <option>Sales Coaching</option>
+        <option>Discovery Calls</option>
+        <option>Compliance Audits</option>
+        <option>HR Onboarding</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="closeModal()">Request Demo &rarr;</button>
+    <p class="modal-note">We'll reach out within one business day to schedule a live session.</p>
+  </div>
+</div>
+
+<script>
+// NAV scroll
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 10);
+  const sections = ['hero','how','skillpacks','channels'];
+  let cur = 'hero';
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && window.scrollY >= el.offsetTop - 100) cur = id;
+  });
+  document.querySelectorAll('.nav-link').forEach(l => {
+    l.classList.toggle('active', l.dataset.target === cur);
+  });
+});
+document.querySelectorAll('.nav-link').forEach(l => {
+  l.addEventListener('click', () => navScrollTo(l.dataset.target));
+});
+function navScrollTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// MODAL
+function openModal() { document.getElementById('overlay').classList.add('open'); }
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+// STEPS (How It Works)
+const steps = [
+  { icon: '📋', num: 'Step 01', title: 'Load a Skill Pack', desc: 'The host configures Vero with a Skill Pack — a YAML file that defines the agent persona, question bank, scoring rubric, and report template. Invite Vero to a Teams meeting or schedule a phone call.' },
+  { icon: '🤝', num: 'Step 02', title: 'Vero Joins the Meeting', desc: 'Vero joins via Recall.ai as a named participant — "Alex (Vero)" appears in the Teams participant list. For phone, Twilio bridges the PSTN call into a LiveKit room. Vero opens with the skill-defined greeting.' },
+  { icon: '🎧', num: 'Step 03', title: 'Audio Capture & Transcription', desc: 'Recall.ai streams PCM audio to the pipeline. Sarvam Saaras v3 transcribes every utterance with speaker diarisation — each turn labelled as Vero or Participant with timestamps.' },
+  { icon: '⚡', num: 'Step 04', title: 'Real-time Agent Loop', desc: 'On each turn, the Node.js agent evaluates the response against the rubric, decides the next action — follow up, clarify, advance, or close — and returns structured JSON: next utterance + score update. All within 4 seconds.' },
+  { icon: '🗣️', num: 'Step 05', title: 'Vero Responds', desc: 'The LLM utterance is sent to Sarvam Bulbul v3 TTS (30+ natural voices). Audio is injected back into the Teams meeting or phone call in real time. The participant hears Vero speak naturally.' },
+  { icon: '📊', num: 'Step 06', title: 'Live Session Monitoring', desc: 'Every turn is persisted to the database. The History page auto-refreshes every 3 seconds. Recruiters and managers watch the live transcript panel as the conversation unfolds — no WebSockets required.' },
+  { icon: '📧', num: 'Step 07', title: 'Report in 60 Seconds', desc: 'Within 60 seconds of call end, a structured report is generated using the Skill Pack report template: per-question scores, competency ratings, verbatim excerpts, and a hire/no-hire recommendation. Delivered by email.' },
+  { icon: '🔄', num: 'Step 08', title: 'Swap Skill, New Expert', desc: 'Change the active Skill Pack YAML and restart the service. Vero becomes a Sales Manager, Pre-sales Consultant, or Compliance Officer with zero code changes. One platform, every structured conversation.' }
+];
+let curStep = 0;
+function renderSteps() {
+  const stage = document.getElementById('step-stage');
+  const title = document.getElementById('step-title');
+  const desc = document.getElementById('step-desc');
+  const dots = document.getElementById('step-dots');
+  stage.innerHTML = steps.map((s, i) => `
+    <div class="step-card ${i === curStep ? 'active' : 'behind'}" style="${i !== curStep ? `transform:translate(${(i-curStep)*8}px,${Math.abs(i-curStep)*6}px);opacity:${Math.max(0, 0.4 - Math.abs(i-curStep)*0.15)};z-index:${10-Math.abs(i-curStep)}` : ''}">
+      <div class="step-icon">${s.icon}</div>
+      <div class="step-num">${s.num}</div>
+      <div class="step-title">${s.title}</div>
+    </div>`).join('');
+  title.textContent = steps[curStep].title;
+  desc.textContent = steps[curStep].desc;
+  dots.innerHTML = steps.map((_, i) => `<div class="s-dot ${i === curStep ? 'on' : ''}" onclick="goStep(${i})"></div>`).join('');
+}
+function goStep(i) { curStep = i; renderSteps(); }
+document.getElementById('step-prev').addEventListener('click', () => { curStep = (curStep - 1 + steps.length) % steps.length; renderSteps(); });
+document.getElementById('step-next').addEventListener('click', () => { curStep = (curStep + 1) % steps.length; renderSteps(); });
+renderSteps();
+setInterval(() => { curStep = (curStep + 1) % steps.length; renderSteps(); }, 4000);
+
+// SKILL PACKS
+const skillPacks = [
+  { icon: '🎤', name: 'Technical Interviewer', output: 'Candidate scorecard + hire/no-hire', tag: 'interviewer-v1' },
+  { icon: '🏆', name: 'Sales Coach', output: 'Rep performance scorecard + gaps', tag: 'sales-coach-v1' },
+  { icon: '🏗️', name: 'Solutions Architect', output: 'Requirements brief + gap analysis', tag: 'architect-v1' },
+  { icon: '🔍', name: 'Discovery Agent', output: 'Qualified opportunity brief + next steps', tag: 'discovery-v1' },
+  { icon: '📋', name: 'Compliance Auditor', output: 'Audit response log + risk flags', tag: 'audit-v1' },
+  { icon: '👋', name: 'Onboarding Buddy', output: 'Onboarding completion record', tag: 'onboarding-v1' },
+  { icon: '🎧', name: 'Complaint Investigator', output: 'Complaint investigation report', tag: 'complaint-v1' },
+  { icon: '⚙️', name: 'Custom Skill Pack', output: 'Your rubric, your report format', tag: 'custom-yaml' }
+];
+document.getElementById('skills-grid').innerHTML = skillPacks.map(s => `
+  <div class="skill-cell">
+    <div class="skill-bar"></div>
+    <span class="skill-icon">${s.icon}</span>
+    <div class="skill-name">${s.name}</div>
+    <div class="skill-output">${s.output}</div>
+    <span class="skill-tag">${s.tag}</span>
+  </div>`).join('');
+
+// CHANNELS
+const channels = [
+  {
+    icon: '💼',
+    title: 'Microsoft Teams Channel',
+    desc: 'Vero joins as a named participant via Recall.ai bot. Azure AD authenticated. Streams PCM audio, transcribes with Sarvam Saaras v3, speaks back via Bulbul v3 TTS.',
+    tags: ['Recall.ai Bot', 'Sarvam Saaras v3 STT', 'Bulbul v3 TTS', 'Azure AD Auth', 'Node.js Agent', 'EOU Detection']
+  },
+  {
+    icon: '📞',
+    title: 'Phone Channel (PSTN)',
+    desc: 'Vero dials any phone number via Twilio SIP trunk into a LiveKit room. Sarvam AI Realtime handles speech-to-speech with sub-second latency. Call recording included.',
+    tags: ['Twilio SIP', 'LiveKit', 'Sarvam Realtime', 'Call Recording', 'E.164 Numbers', 'MCP Architecture']
+  },
+  {
+    icon: '🤖',
+    title: 'Sarvam AI Engine',
+    desc: 'Unified AI stack across both channels. Saaras v3 for STT, Bulbul v3 for TTS, Sarvam-30B / 105B for conversation intelligence. Supports 23 languages including all major Indian languages.',
+    tags: ['Saaras v3 STT', 'Bulbul v3 TTS', 'Sarvam-30B LLM', '23 Languages', 'Hindi/Tamil/Telugu', 'en-IN Default']
+  },
+  {
+    icon: '📄',
+    title: 'Skill Pack Config',
+    desc: 'YAML-driven conversation blueprints. Two modes: Guided (fixed question sequence) and Intelligent (objectives-based adaptive). One config change, completely new agent behaviour.',
+    tags: ['YAML Schema', 'Guided Mode', 'Intelligent Mode', 'Scoring Rubric', 'Report Template', 'No Code Change']
+  }
+];
+document.getElementById('channels-grid').innerHTML = channels.map(c => `
+  <div class="channel-card">
+    <div class="ch-icon">${c.icon}</div>
+    <div>
+      <div class="ch-title">${c.title}</div>
+      <div class="ch-desc">${c.desc}</div>
+      <div class="ch-tags">${c.tags.map(t=>`<span class="ch-tag">${t}</span>`).join('')}</div>
+    </div>
+  </div>`).join('');
+
+// TECH STACK
+const tech = ['Sarvam AI (STT · TTS · LLM)', 'Recall.ai', 'LiveKit SIP', 'Twilio', 'FastAPI Python', 'Node.js TypeScript', 'PostgreSQL', 'Redis', 'React + Vite', 'Docker Compose', 'Resend Email', 'Azure AD'];
+document.getElementById('tech-row').innerHTML = tech.map(t => `<span class="tech-tag">${t}</span>`).join('');
+
+// WAVEFORM toggle (simulate speaking vs listening)
+let waveActive = true;
+setInterval(() => {
+  waveActive = !waveActive;
+  document.querySelectorAll('.wave-bar').forEach(b => {
+    b.style.animationPlayState = waveActive ? 'running' : 'paused';
+    b.style.height = waveActive ? '' : '3px';
+  });
+}, 3000);
+</script>
+</body>
+</html>

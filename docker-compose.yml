@@ -1,0 +1,112 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vero
+      POSTGRES_PASSWORD: vero
+      POSTGRES_DB: vero
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vero"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      - DATABASE_URL=postgresql://vero:vero@db:5432/vero
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - RECALL_API_KEY=${RECALL_API_KEY}
+      - RECALL_REGION=${RECALL_REGION:-us-east-1}
+      - SARVAM_API_KEY=${SARVAM_API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - TEAMS_BOT_APP_ID=${TEAMS_BOT_APP_ID}
+      - TEAMS_BOT_APP_PASSWORD=${TEAMS_BOT_APP_PASSWORD}
+      - PORT=${PORT:-8000}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER:-}
+      - TWILIO_MCP_ENABLED=${TWILIO_MCP_ENABLED:-true}
+      - LIVEKIT_URL=${LIVEKIT_URL:-}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-}
+      - LIVEKIT_SIP_TRUNK_ID=${LIVEKIT_SIP_TRUNK_ID:-}
+      - LIVEKIT_SIP_URI=${LIVEKIT_SIP_URI:-}
+      - LIVEKIT_SIP_INBOUND_TRUNK_ID=${LIVEKIT_SIP_INBOUND_TRUNK_ID:-}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - API_TOKEN=${API_TOKEN}
+      - RECALL_WEBHOOK_SECRET=${RECALL_WEBHOOK_SECRET:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+    volumes:
+      - ./backend:/app/backend:ro
+      - ./pipeline:/app/pipeline:ro
+      - ./skill.md:/app/skill.md:ro
+      - ${APPDATA}/gcloud:/root/.config/gcloud:ro
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:8000
+      - VITE_API_TOKEN=${API_TOKEN}
+    volumes:
+      - ./frontend/src:/app/frontend/src:ro
+    depends_on:
+      - backend
+
+  livekit-agent:
+    build:
+      context: .
+      dockerfile: livekit_agent/Dockerfile
+    environment:
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - SARVAM_API_KEY=${SARVAM_API_KEY}
+      - BACKEND_URL=http://backend:8000
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+    volumes:
+      - ${APPDATA}/gcloud:/root/.config/gcloud:ro
+    restart: always
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

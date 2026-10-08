@@ -1,0 +1,24 @@
+{
+  "name": "vero-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Vero pi_agent conversation engine",
+  "main": "agent.ts",
+  "scripts": {
+    "start": "tsx agent.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mariozechner/pi-agent": "latest",
+    "@mariozechner/pi-ai": "latest",
+    "@sinclair/typebox": "^0.32.0",
+    "google-auth-library": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "fast-check": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

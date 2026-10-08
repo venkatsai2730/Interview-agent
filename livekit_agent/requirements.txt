@@ -1,0 +1,11 @@
+livekit-agents~=1.4
+livekit
+livekit-plugins-sarvam
+livekit-plugins-openai
+livekit-plugins-deepgram
+livekit-plugins-google
+httpx
+pyyaml
+python-dotenv
+websockets>=13.0
+sarvamai>=0.1.27
